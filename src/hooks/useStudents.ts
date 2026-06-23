@@ -14,6 +14,7 @@ export interface Student {
   baptism_name: string | null;
   avatar_url: string | null;
   class_id: string | null;
+  user_id: string | null;
   enrollment_date: string;
   is_active: boolean;
   created_at: string;

@@ -98,6 +98,7 @@ export default function Students() {
       enrollment_date: new Date().toISOString().split('T')[0],
       is_active: true,
       avatar_url: null,
+      user_id: null,
     }, {
       onSuccess: async (data) => {
         // Auto-create auth account for student
