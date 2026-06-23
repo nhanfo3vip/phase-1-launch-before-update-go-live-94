@@ -4,7 +4,8 @@ import { toast } from "sonner";
 
 export interface LearningMaterial {
   id: string;
-  class_id: string;
+  class_id: string | null;
+  branch_id: string | null;
   title: string;
   description: string | null;
   file_url: string | null;
@@ -15,28 +16,38 @@ export interface LearningMaterial {
   updated_at: string;
   classes?: {
     name: string;
-  };
+  } | null;
+  branches?: {
+    id: string;
+    name: string;
+  } | null;
   uploader?: {
     name: string;
   };
 }
 
-export function useLearningMaterials(classId?: string) {
+export function useLearningMaterials(classId?: string, branchId?: string) {
   return useQuery({
-    queryKey: ["learning-materials", classId],
+    queryKey: ["learning-materials", classId, branchId],
     queryFn: async () => {
       let query = supabase
         .from("learning_materials")
         .select(
           `
           *,
-          classes(name)
+          classes(name),
+          branches(id, name)
         `
         )
         .order("created_at", { ascending: false });
 
       if (classId && classId !== "all") {
         query = query.eq("class_id", classId);
+      }
+
+      if (branchId && branchId !== "all") {
+        // Show materials for this branch + Chung (null branch_id)
+        query = query.or(`branch_id.eq.${branchId},branch_id.is.null`);
       }
 
       const { data, error } = await query;
@@ -80,12 +91,14 @@ export function useUploadMaterial() {
       title,
       description,
       classId,
+      branchId,
       week,
     }: {
       file: File;
       title: string;
       description?: string;
-      classId: string;
+      classId?: string | null;
+      branchId?: string | null;
       week?: number;
     }) => {
       // Get current user
@@ -162,7 +175,8 @@ export function useUploadMaterial() {
         .insert({
           title,
           description: description || null,
-          class_id: classId,
+          class_id: classId || null,
+          branch_id: branchId || null,
           week: week || null,
           file_url: publicUrl,
           file_type: fileType,

@@ -35,12 +35,14 @@ import { vi } from "date-fns/locale";
 
 const roleLabels: Record<AppRole, string> = {
   admin: "Quản trị viên",
+  truong_nganh: "Trưởng Ngành",
   glv: "Giáo lý viên",
   student: "Học viên",
 };
 
-const roleBadgeVariants: Record<AppRole, "default" | "secondary" | "outline"> = {
+const roleBadgeVariants: Record<AppRole, "default" | "secondary" | "outline" | "destructive"> = {
   admin: "default",
+  truong_nganh: "destructive",
   glv: "secondary",
   student: "outline",
 };
@@ -135,6 +137,12 @@ export default function Users() {
                                 <div className="flex items-center gap-2">
                                   <Shield className="h-4 w-4" />
                                   {roleLabels.admin}
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="truong_nganh">
+                                <div className="flex items-center gap-2">
+                                  <Shield className="h-4 w-4 text-orange-500" />
+                                  {roleLabels.truong_nganh}
                                 </div>
                               </SelectItem>
                               <SelectItem value="glv">
