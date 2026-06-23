@@ -1,5 +1,5 @@
 // User types
-export type UserRole = 'admin' | 'glv' | 'student';
+export type UserRole = 'admin' | 'truong_nganh' | 'glv' | 'student';
 
 export interface User {
   id: string;
@@ -24,12 +24,29 @@ export interface AcademicYear {
   studentCount: number;
 }
 
-// Class
+// Branch (Ngành)
+export interface Branch {
+  id: string;
+  name: string;
+  academicYearId: string;
+  academicYearName?: string;
+  leaderCatechistId?: string | null;
+  leaderName?: string | null;
+  description?: string | null;
+  classCount?: number;
+  studentCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Class (Chi đoàn)
 export interface ClassInfo {
   id: string;
   name: string;
   academicYearId: string;
   academicYearName: string;
+  branchId?: string | null;
+  branchName?: string | null;
   description?: string;
   schedule?: string;
   catechists: User[];
@@ -49,6 +66,8 @@ export interface Student {
   address?: string;
   classId: string;
   className: string;
+  branchId?: string | null;
+  branchName?: string | null;
   baptismName?: string;
   avatar?: string;
   enrollmentDate: string;
@@ -108,7 +127,9 @@ export interface Score {
 // Learning materials
 export interface LearningMaterial {
   id: string;
-  classId: string;
+  classId?: string | null;
+  branchId?: string | null;
+  branchName?: string | null;
   title: string;
   description?: string;
   fileUrl: string;

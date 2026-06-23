@@ -6,11 +6,16 @@ export interface ClassInfo {
   id: string;
   name: string;
   academic_year_id: string;
+  branch_id: string | null;
   description: string | null;
   schedule: string | null;
   created_at: string;
   updated_at: string;
   academic_years?: {
+    id: string;
+    name: string;
+  } | null;
+  branches?: {
     id: string;
     name: string;
   } | null;
@@ -25,15 +30,19 @@ export interface ClassInfo {
   students?: { count: number }[];
 }
 
-export function useClasses(academicYearId?: string) {
+export function useClasses(academicYearId?: string, branchId?: string) {
   return useQuery({
-    queryKey: ['classes', academicYearId],
+    queryKey: ['classes', academicYearId, branchId],
     queryFn: async () => {
       let query = supabase
         .from('classes')
         .select(`
           *,
           academic_years (
+            id,
+            name
+          ),
+          branches (
             id,
             name
           ),
@@ -51,6 +60,10 @@ export function useClasses(academicYearId?: string) {
 
       if (academicYearId) {
         query = query.eq('academic_year_id', academicYearId);
+      }
+
+      if (branchId) {
+        query = query.eq('branch_id', branchId);
       }
 
       const { data, error } = await query;
@@ -104,7 +117,7 @@ export function useCreateClass() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (classData: { name: string; academic_year_id: string; description?: string; schedule?: string }) => {
+    mutationFn: async (classData: { name: string; academic_year_id: string; branch_id?: string | null; description?: string; schedule?: string }) => {
       const { data, error } = await supabase
         .from('classes')
         .insert(classData)
@@ -132,7 +145,7 @@ export function useUpdateClass() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; name?: string; description?: string; schedule?: string; academic_year_id?: string }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; name?: string; description?: string; schedule?: string; academic_year_id?: string; branch_id?: string | null }) => {
       const { data, error } = await supabase
         .from('classes')
         .update(updates)

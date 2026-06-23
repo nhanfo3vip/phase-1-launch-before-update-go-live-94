@@ -34,15 +34,25 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useClasses } from '@/hooks/useClasses';
 import { useLearningMaterials, useUploadMaterial, useDeleteMaterial, LearningMaterial } from '@/hooks/useLearningMaterials';
-import { Upload, FileText, Download, Eye, Calendar, User, Plus, Loader2, Trash2, X } from 'lucide-react';
+import { useBranches } from '@/hooks/useBranches';
+import { useActiveAcademicYear } from '@/hooks/useAcademicYears';
+import { useAuth } from '@/contexts/AuthContext';
+import { Upload, FileText, Download, Eye, Calendar, User, Plus, Loader2, Trash2, X, GitBranch } from 'lucide-react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { toast } from 'sonner';
 
 export default function Materials() {
+  const { userRole } = useAuth();
+  const { data: activeYear } = useActiveAcademicYear();
   const { data: classes, isLoading: classesLoading } = useClasses();
+  const { data: branches } = useBranches(activeYear?.id);
+
+  // Upload scope: 'class', 'branch', or 'all' (Chung)
+  const [uploadScope, setUploadScope] = useState<'class' | 'branch' | 'chung'>('branch');
   const [selectedClass, setSelectedClass] = useState<string>('all');
-  const { data: materials, isLoading: materialsLoading } = useLearningMaterials(selectedClass);
+  const [selectedBranchFilter, setSelectedBranchFilter] = useState<string>('all');
+  const { data: materials, isLoading: materialsLoading } = useLearningMaterials(selectedClass, selectedBranchFilter);
   const uploadMutation = useUploadMaterial();
   const deleteMutation = useDeleteMaterial();
   
@@ -84,6 +94,7 @@ export default function Materials() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [classId, setClassId] = useState('');
+  const [branchId, setBranchId] = useState('');
   const [week, setWeek] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -92,6 +103,7 @@ export default function Materials() {
     setTitle('');
     setDescription('');
     setClassId('');
+    setBranchId('');
     setWeek('');
     setSelectedFile(null);
     if (fileInputRef.current) {
@@ -123,8 +135,16 @@ export default function Materials() {
   };
 
   const handleUpload = async () => {
-    if (!title.trim() || !classId || !selectedFile) {
-      toast.error('Vui lòng điền đầy đủ thông tin bắt buộc');
+    if (!title.trim() || !selectedFile) {
+      toast.error('Vui lòng điền tiêu đề và chọn file');
+      return;
+    }
+    if (uploadScope === 'class' && !classId) {
+      toast.error('Vui lòng chọn chi đoàn');
+      return;
+    }
+    if (uploadScope === 'branch' && !branchId) {
+      toast.error('Vui lòng chọn ngành');
       return;
     }
 
@@ -132,7 +152,8 @@ export default function Materials() {
       file: selectedFile,
       title: title.trim(),
       description: description.trim() || undefined,
-      classId,
+      classId: uploadScope === 'class' ? classId : null,
+      branchId: uploadScope === 'branch' ? branchId : null,
       week: week ? parseInt(week) : undefined,
     });
 
@@ -235,34 +256,65 @@ export default function Materials() {
                     onChange={(e) => setTitle(e.target.value)}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                {/* Upload scope */}
+                <div className="space-y-2">
+                  <Label>Phạm vi tài liệu *</Label>
+                  <Select value={uploadScope} onValueChange={(v: any) => { setUploadScope(v); setClassId(''); setBranchId(''); }}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="chung">Chung (toàn giáo xứ)</SelectItem>
+                      <SelectItem value="branch">Theo Ngành</SelectItem>
+                      <SelectItem value="class">Theo Chi đoàn</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {uploadScope === 'branch' && (
                   <div className="space-y-2">
-                    <Label htmlFor="classId">Lớp *</Label>
-                    <Select value={classId} onValueChange={setClassId}>
+                    <Label htmlFor="branchIdUpload">Ngành *</Label>
+                    <Select value={branchId} onValueChange={setBranchId}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Chọn lớp" />
+                        <SelectValue placeholder="Chọn ngành" />
                       </SelectTrigger>
                       <SelectContent>
-                        {(classes || []).map(cls => (
-                          <SelectItem key={cls.id} value={cls.id}>
-                            {cls.name}
-                          </SelectItem>
+                        {(branches || []).map(branch => (
+                          <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="week">Tuần</Label>
-                    <Input
-                      id="week"
-                      type="number"
-                      min="1"
-                      placeholder="VD: 4"
-                      value={week}
-                      onChange={(e) => setWeek(e.target.value)}
-                    />
+                )}
+                {uploadScope === 'class' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="classId">Chi đoàn *</Label>
+                      <Select value={classId} onValueChange={setClassId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Chọn chi đoàn" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(classes || []).map(cls => (
+                            <SelectItem key={cls.id} value={cls.id}>
+                              {cls.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="week">Tuần</Label>
+                      <Input
+                        id="week"
+                        type="number"
+                        min="1"
+                        placeholder="VD: 4"
+                        value={week}
+                        onChange={(e) => setWeek(e.target.value)}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="description">Mô tả</Label>
                   <Textarea
@@ -313,7 +365,7 @@ export default function Materials() {
                 </Button>
                 <Button 
                   onClick={handleUpload} 
-                  disabled={uploadMutation.isPending || !title || !classId || !selectedFile}
+                  disabled={uploadMutation.isPending || !title || !selectedFile}
                 >
                   {uploadMutation.isPending ? (
                     <>
@@ -354,9 +406,18 @@ export default function Materials() {
                         </p>
                       )}
                       <div className="flex flex-wrap gap-2 mt-2">
-                        <Badge variant="secondary">
-                          {material.classes?.name || 'N/A'}
-                        </Badge>
+                        {material.branches ? (
+                          <Badge variant="secondary">
+                            <GitBranch className="mr-1 h-3 w-3" />
+                            {material.branches.name}
+                          </Badge>
+                        ) : material.classes ? (
+                          <Badge variant="secondary">
+                            {material.classes.name}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline">Chung</Badge>
+                        )}
                         {material.week && (
                           <Badge variant="outline">Tuần {material.week}</Badge>
                         )}

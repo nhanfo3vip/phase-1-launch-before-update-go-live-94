@@ -25,7 +25,8 @@ import {
 } from '@/components/ui/select';
 import { useClasses, useCreateClass, useUpdateClass, type ClassInfo } from '@/hooks/useClasses';
 import { useAcademicYears, useActiveAcademicYear } from '@/hooks/useAcademicYears';
-import { Plus, Users, Clock, UserCheck, ChevronRight, Loader2, Database, Pencil } from 'lucide-react';
+import { useBranches } from '@/hooks/useBranches';
+import { Plus, Users, Clock, UserCheck, ChevronRight, Loader2, Database, Pencil, GitBranch } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Classes() {
@@ -37,9 +38,14 @@ export default function Classes() {
   const updateClass = useUpdateClass();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedBranchFilter, setSelectedBranchFilter] = useState<string>('all');
+  const [selectedYearFilter, setSelectedYearFilter] = useState<string>(() => {
+    return activeYear?.id || 'all';
+  });
   const [newClass, setNewClass] = useState({
     name: '',
     academic_year_id: '',
+    branch_id: '',
     description: '',
     schedule: ''
   });
@@ -48,8 +54,21 @@ export default function Classes() {
   const [editClass, setEditClass] = useState({
     name: '',
     academic_year_id: '',
+    branch_id: '',
     description: '',
     schedule: ''
+  });
+
+  // Branches for the selected academic year in dialog
+  const { data: branches } = useBranches(newClass.academic_year_id || undefined);
+  const { data: editBranches } = useBranches(editClass.academic_year_id || undefined);
+  const { data: filterBranches } = useBranches(selectedYearFilter !== 'all' ? selectedYearFilter : undefined);
+
+  // Filtered classes
+  const filteredClasses = (classes || []).filter(cls => {
+    const matchYear = selectedYearFilter === 'all' || cls.academic_year_id === selectedYearFilter;
+    const matchBranch = selectedBranchFilter === 'all' || cls.branch_id === selectedBranchFilter;
+    return matchYear && matchBranch;
   });
 
   const handleCreateClass = async () => {
@@ -61,11 +80,12 @@ export default function Classes() {
     createClass.mutate({
       name: newClass.name,
       academic_year_id: newClass.academic_year_id,
+      branch_id: newClass.branch_id || null,
       description: newClass.description || undefined,
       schedule: newClass.schedule || undefined,
     }, {
       onSuccess: () => {
-        setNewClass({ name: '', academic_year_id: '', description: '', schedule: '' });
+        setNewClass({ name: '', academic_year_id: '', branch_id: '', description: '', schedule: '' });
         setIsDialogOpen(false);
       }
     });
@@ -76,6 +96,7 @@ export default function Classes() {
     setEditClass({
       name: cls.name,
       academic_year_id: cls.academic_year_id,
+      branch_id: cls.branch_id || '',
       description: cls.description || '',
       schedule: cls.schedule || ''
     });
@@ -94,6 +115,7 @@ export default function Classes() {
       id: editingClass.id,
       name: editClass.name,
       academic_year_id: editClass.academic_year_id,
+      branch_id: editClass.branch_id || null,
       description: editClass.description || undefined,
       schedule: editClass.schedule || undefined,
     }, {
@@ -106,15 +128,39 @@ export default function Classes() {
 
   return (
     <MainLayout 
-      title="Quản lý Lớp học" 
-      subtitle="Tạo và quản lý các lớp trong niên khóa"
+      title="Quản lý Chi đoàn" 
+      subtitle="Tạo và quản lý các chi đoàn trong từng ngành"
     >
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-muted-foreground">
-              {activeYear ? `Niên khóa ${activeYear.name}` : 'Chưa có niên khóa'} • {classes?.length || 0} lớp
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-3 flex-wrap">
+            <Select value={selectedYearFilter} onValueChange={(v) => { setSelectedYearFilter(v); setSelectedBranchFilter('all'); }}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Tất cả niên khóa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả niên khóa</SelectItem>
+                {(academicYears || []).map(year => (
+                  <SelectItem key={year.id} value={year.id}>
+                    {year.name} {year.is_active && '✓'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={selectedBranchFilter} onValueChange={setSelectedBranchFilter} disabled={selectedYearFilter === 'all'}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Tất cả ngành" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả ngành</SelectItem>
+                {(filterBranches || []).map(branch => (
+                  <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-muted-foreground text-sm self-center">
+              {filteredClasses.length} chi đoàn
             </p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -133,7 +179,7 @@ export default function Classes() {
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="className">Tên lớp *</Label>
+                  <Label htmlFor="className">Tên chi đoàn *</Label>
                   <Input
                     id="className"
                     placeholder="VD: Hiệp Sĩ 5"
@@ -145,7 +191,7 @@ export default function Classes() {
                   <Label htmlFor="academicYear">Niên khóa *</Label>
                   <Select
                     value={newClass.academic_year_id}
-                    onValueChange={(value) => setNewClass({ ...newClass, academic_year_id: value })}
+                    onValueChange={(value) => setNewClass({ ...newClass, academic_year_id: value, branch_id: '' })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Chọn niên khóa" />
@@ -159,6 +205,25 @@ export default function Classes() {
                     </SelectContent>
                   </Select>
                 </div>
+                {newClass.academic_year_id && (
+                  <div className="space-y-2">
+                    <Label htmlFor="branchId">Ngành</Label>
+                    <Select
+                      value={newClass.branch_id}
+                      onValueChange={(value) => setNewClass({ ...newClass, branch_id: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn ngành (tuỳ chọn)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">— Không thuộc ngành nào —</SelectItem>
+                        {(branches || []).map(branch => (
+                          <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="schedule">Lịch học</Label>
                   <Input
@@ -189,7 +254,7 @@ export default function Classes() {
                       Đang tạo...
                     </>
                   ) : (
-                    'Tạo lớp'
+                    'Tạo chi đoàn'
                   )}
                 </Button>
               </DialogFooter>
@@ -209,14 +274,14 @@ export default function Classes() {
         >
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>Chỉnh sửa lớp học</DialogTitle>
+              <DialogTitle>Chỉnh sửa chi đoàn</DialogTitle>
               <DialogDescription>
-                Cập nhật thông tin lớp học trong niên khóa.
+                Cập nhật thông tin chi đoàn.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="editClassName">Tên lớp *</Label>
+                <Label htmlFor="editClassName">Tên chi đoàn *</Label>
                 <Input
                   id="editClassName"
                   placeholder="VD: Hiệp Sĩ 5"
@@ -244,6 +309,26 @@ export default function Classes() {
                   </SelectContent>
                 </Select>
               </div>
+              {editClass.academic_year_id && (
+                <div className="space-y-2">
+                  <Label htmlFor="editBranchId">Ngành</Label>
+                  <Select
+                    value={editClass.branch_id}
+                    onValueChange={(value) => setEditClass({ ...editClass, branch_id: value })}
+                    disabled={!editingClass}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn ngành (tuỳ chọn)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— Không thuộc ngành nào —</SelectItem>
+                      {(editBranches || []).map(branch => (
+                        <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="editSchedule">Lịch học</Label>
                 <Input
@@ -294,9 +379,9 @@ export default function Classes() {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
-        ) : classes && classes.length > 0 ? (
+        ) : filteredClasses.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            {classes.map((cls, index) => (
+            {filteredClasses.map((cls, index) => (
               <Card 
                 key={cls.id} 
                 variant="interactive"
@@ -307,9 +392,15 @@ export default function Classes() {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle className="flex items-center gap-2">
+                      <CardTitle className="flex items-center gap-2 flex-wrap">
                         {cls.name}
                         <Badge variant="gold">{cls.academic_years?.name || 'N/A'}</Badge>
+                        {cls.branches && (
+                          <Badge variant="secondary" className="text-xs">
+                            <GitBranch className="mr-1 h-3 w-3" />
+                            {cls.branches.name}
+                          </Badge>
+                        )}
                       </CardTitle>
                       <CardDescription className="mt-1">
                         {cls.description || 'Không có mô tả'}
@@ -340,7 +431,7 @@ export default function Classes() {
                         </div>
                         <div>
                           <p className="text-lg font-bold text-foreground">{cls.students?.[0]?.count || 0}</p>
-                          <p className="text-xs text-muted-foreground">Học viên</p>
+                          <p className="text-xs text-muted-foreground">Đoàn viên</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">

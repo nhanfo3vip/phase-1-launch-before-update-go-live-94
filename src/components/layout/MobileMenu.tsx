@@ -28,7 +28,7 @@ const menuItems = [
     icon: LayoutDashboard, 
     label: 'Tổng quan', 
     path: '/dashboard',
-    roles: ['admin', 'glv']
+    roles: ['admin', 'truong_nganh', 'glv']
   },
   { 
     icon: CalendarDays, 
@@ -38,76 +38,51 @@ const menuItems = [
   },
   { 
     icon: GraduationCap, 
-    label: 'Lớp học', 
+    label: 'Chi đoàn', 
     path: '/classes',
-    roles: ['admin', 'glv']
+    roles: ['admin', 'truong_nganh', 'glv']
   },
   { 
     icon: UserCheck, 
     label: 'Giáo lý viên', 
     path: '/catechists',
-    roles: ['admin']
+    roles: ['admin', 'truong_nganh']
   },
   { 
     icon: Users, 
-    label: 'Học viên', 
+    label: 'Đoàn viên', 
     path: '/students',
-    roles: ['admin', 'glv']
+    roles: ['admin', 'truong_nganh', 'glv']
   },
   { 
     icon: ClipboardCheck, 
     label: 'Điểm danh', 
     path: '/attendance',
-    roles: ['admin', 'glv']
+    roles: ['admin', 'truong_nganh', 'glv']
   },
   { 
     icon: Star, 
     label: 'Điểm số', 
     path: '/scores',
-    roles: ['admin', 'glv']
+    roles: ['admin', 'truong_nganh', 'glv']
   },
   { 
     icon: BookOpen, 
     label: 'Tài liệu', 
     path: '/materials',
-    roles: ['admin', 'glv']
+    roles: ['admin', 'truong_nganh', 'glv']
   },
   { 
     icon: BarChart3, 
     label: 'Báo cáo', 
     path: '/reports',
-    roles: ['admin']
+    roles: ['admin', 'truong_nganh']
   },
   { 
     icon: Settings, 
     label: 'Cài đặt', 
     path: '/settings',
     roles: ['admin']
-  },
-  // Student menu items
-  { 
-    icon: Home, 
-    label: 'Trang chủ', 
-    path: '/student',
-    roles: ['student']
-  },
-  { 
-    icon: BookOpen, 
-    label: 'Tài liệu', 
-    path: '/student/materials',
-    roles: ['student']
-  },
-  { 
-    icon: ClipboardCheck, 
-    label: 'Điểm danh', 
-    path: '/student/attendance',
-    roles: ['student']
-  },
-  { 
-    icon: Star, 
-    label: 'Điểm số', 
-    path: '/student/scores',
-    roles: ['student']
   },
 ];
 
@@ -125,7 +100,7 @@ export function MobileMenu({ open, onOpenChange }: MobileMenuProps) {
   );
 
   const displayName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Người dùng';
-  const roleLabel = userRole === 'admin' ? 'Quản trị viên' : userRole === 'glv' ? 'Giáo lý viên' : 'Học viên';
+  const roleLabel = userRole === 'admin' ? 'Quản trị viên' : userRole === 'truong_nganh' ? 'Trưởng Ngành' : userRole === 'glv' ? 'Giáo lý viên' : 'Học viên';
 
   const handleSignOut = async () => {
     onOpenChange(false);
